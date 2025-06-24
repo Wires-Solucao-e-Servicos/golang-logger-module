@@ -1,4 +1,3 @@
-[smtp]
 port = 587
 password = "password"
 server = "smtp.gmail.com"

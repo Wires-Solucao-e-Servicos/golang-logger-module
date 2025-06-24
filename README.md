@@ -152,7 +152,6 @@ To enable email notifications on errors, you must create a config.toml file with
 Use config/config.toml.example as a reference for the required structure. If this configuration isn’t loaded, errors will be logged locally but no email alerts will be sent.
 
 ```toml
-[smtp]
 port = 587
 password = "password"
 server = "smtp.gmail.com"

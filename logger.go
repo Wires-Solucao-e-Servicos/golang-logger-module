@@ -181,7 +181,7 @@ func Error(code, module string, err error) {
 
 	go func() {
 
-		if instance == nil {
+		if instance == nil || SMTPConfig == nil {
 			return
 		}
 		

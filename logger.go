@@ -14,11 +14,11 @@ import (
 )
 
 type Log struct {
-	channel chan string
+	wg		  sync.WaitGroup
 	quit    chan struct{}
 	file    *os.File
 	logger  *log.Logger
-	wg		  sync.WaitGroup
+	channel chan string
 }
 
 var (
@@ -47,10 +47,9 @@ func Timestamp() string {
 	return time.Now().Format("02/01/2006 15:04:05")
 }
 
-func Init() {
-	once.Do(func() {
+func CreateLoggerDirectory() (*os.File, error) {
 
-		var programDirectory string
+	var programDirectory string
 		folderName := "Watchdog Service"
 
 		if runtime.GOOS == "windows" {
@@ -58,47 +57,60 @@ func Init() {
 		} else {
 			homeDirectory, err := os.UserHomeDir()
 			if err != nil {
-				log.Fatalf("home dir not found: %s", err)
+				return nil, fmt.Errorf("home dir not found: %s", err)
 			}
 			programDirectory = filepath.Join(homeDirectory, folderName)
 		}
 
 		logDirectory := filepath.Join(programDirectory, "Logs")
 		if err := os.MkdirAll(logDirectory, 0755); err != nil {
-			log.Fatalf("failed to create logs dir: %v", err)
+			return nil, fmt.Errorf("failed to create logs dir: %v", err)
 		}
 
 		logPath := filepath.Join(logDirectory, "Logs.txt")
 
 		if _, err := os.Stat(logPath); os.IsNotExist(err) {
-			err = os.WriteFile(logPath, fmt.Appendf(nil, "[Wires Watchdog Service - %s] \n\n", ClientName), 0644)
+			err = os.WriteFile(logPath, fmt.Appendf(nil, "[Wires Watchdog Service - %s] \n\n", GetClientName()), 0644)
 			if err != nil {
-				log.Fatalf("failed to create log file: %v", err)
+				return nil, fmt.Errorf("failed to create log file: %v", err)
 			}
 		}
 
 		logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
-			log.Fatalf("failed to open log file: %v", err)
+			return nil, fmt.Errorf("failed to open log file: %v", err)
+		}
+
+		return logFile, nil
+}
+
+func Init() {
+
+	once.Do(func() {
+
+		logFile, err := CreateLoggerDirectory()
+		if err != nil {
+			log.Fatal("failed to create logger directory: %w", err)
 		}
 
 		instance = &Log{
-			channel: make(chan string, 100),
 			quit: 	 make(chan struct{}),
 			file:    logFile,
 			logger:  log.New(logFile, "", 0),
+			channel: make(chan string, 100),
 		}
 
 		instance.wg.Add(1)
 		go instance.run()
 
-		instance.logger.Printf("\n[LOG] [%s] > logger initialized.\n", Timestamp())
+		instance.logger.Printf("\n\n[%s] [%s] [%s] [%s] [%s:%d] > %s.\n", "LOG", Timestamp(), "LOGGER", "LOGGER_INIT", "logger.go", 0, "logger initialized")
 	})
 }
 
 func (l *Log) run() {
 
 	defer l.wg.Done()
+	defer l.file.Close()
 
 	for {
 		select {
@@ -109,8 +121,6 @@ func (l *Log) run() {
 				for message := range l.channel {
 					l.logger.Println(message)
 				}
-				l.file.Close()
-			return
 		}
 	}
 }
@@ -151,13 +161,18 @@ func Error(code, module string, err error) {
 	message := FormatLog("ERR", module, code, text)
 	instance.channel <- message
 
-	if sendErr := SendEmail(models.Notification{
-		Datetime: Timestamp(),
-		Code:     code,
-		Location: fmt.Sprint(GetCallerInfo()),
-		Details:  message,
-	}); sendErr != nil {
-		errMsg := FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", sendErr))
-		instance.channel <- errMsg
-	} 
+	go func() {
+		notification := models.Notification{
+			Datetime: Timestamp(),
+			Code:     code,
+			Location: fmt.Sprint(GetCallerInfo()),
+			Details:  message,
+		}
+		
+		if err := SendEmail(notification); err != nil {
+			errMsg := FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", message))
+			instance.channel <- errMsg
+		} 
+	} ()
+	
 }

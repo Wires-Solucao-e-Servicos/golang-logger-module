@@ -55,74 +55,53 @@ func main() {
 ### Core Functions
 
 ```go
-logger.Info(code, module, text string)
+logger.Info(code, module, text string) //Logs informational messages.
 ```
-
-Logs informational messages.
 
 ```go
-logger.Warning(code, module, text string)
+logger.Warning(code, module, text string) // Logs warning messages.
 ```
-
-Logs warning messages.
 
 ```go
-logger.Debug(code, module, text string)`
+logger.Debug(code, module, text string) // Logs debug messages.
 ```
-
-Logs debug messages.
 
 ```go
-logger.Error(code, module string, err error)`
+logger.Error(code, module string, err error) //Logs error messages and automatically sends email notification.
 ```
-
-Logs error messages and automatically sends email notification.
 
 ```go
-logger.Close()`
+logger.Close() // Shuts down the logger, ensuring all messages are written before termination.
 ```
 
-Gracefully shuts down the logger, ensuring all messages are written before termination.
 
 ### Configuration Functions
 
 ```go
-logger.SetClientName(name string)
+logger.SetClientName(name string) // Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
 ```
-
-Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
 
 ```go
-logger.GetClientName() string
+logger.GetClientName() string // Returns the current client name (thread-safe).
 ```
-
-Returns the current client name (thread-safe).
 
 ```go
-logger.LoadSMTPConfig(path string) error
+logger.LoadSMTPConfig(path string) error // Loads SMTP configuration from a TOML file for error notifications.
 ```
-
-Loads SMTP configuration from a TOML file for error notifications.
 
 ```go
-logger.ValidateSMTPConfig(s *models.SMTP) error
+logger.ValidateSMTPConfig(s *models.SMTP) error // Validate provided SMTP Configuration.
 ```
-
-Validate provided SMTP Configuration.
 
 ```go
-logger.GetSMTPConfig() *models.SMTP
+logger.GetSMTPConfig() *models.SMTP // Returns the current SMTP configuration (thread-safe).
 ```
-
-Returns the current SMTP configuration (thread-safe).
 
 ### Adicional Functions
 
 ```go
-logger.SendEmail(values models.Notification) error
+logger.SendEmail(values models.Notification) error // Send email according to loaded configuration.
 ```
-
-Send email according to loaded configuration.
 
 ## Log Format
 
@@ -183,6 +162,39 @@ func main() {
     logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
 }
 ```
+
+## Email Notifications
+
+You can send email notifications without logging an error by directly using the `SendEmail` function with a properly formatted `Notification` struct.
+
+The `Notification` struct must have the following fields:
+
+```go
+type Notification struct {
+    Datetime string  // Timestamp of the event
+    Code     string  // A code identifying the event
+    Location string  // Caller info (file:line)
+    Details  string  // Message details
+}
+```
+
+Example of sending a custom notification email:
+
+```go
+notification := models.Notification{
+    Datetime: logger.Timestamp(),
+    Code:     "CUSTOM_ALERT",
+    Location: fmt.Sprint(logger.GetCallerInfo()),
+    Details:  "Custom alert message details here",
+}
+
+if err := logger.SendEmail(notification); err != nil {
+    errMsg := logger.FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", err))
+}
+```
+
+Make sure the `Notification` fields follow the expected format so the email content and log formatting work correctly.
+
 
 ## Error Handling
 

@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 # Golang Logger
+=======
+# Golang Logger Module
+>>>>>>> 3a7b554 (docs: update README.md)
 
 A comprehensive Go logging module with file-based logging and email notification capabilities, designed for the Watchdog Service monitoring system.
 
 ## Features
 
+<<<<<<< HEAD
 - **Multi-Level Logging**: Support for Info, Warning, Debug, and Error log levels
 - **File-Based Persistence**: Automatic log file creation and management
 - **Email Notifications**: Automatic email alerts for error-level events via SMTP
@@ -29,10 +34,20 @@ golang-logger-module/
 ├── go.mod                 # Go module definition
 └── go.sum                 # Dependency checksums
 ```
+=======
+- **Thread-safe logging** with goroutine-based message processing
+- **Multiple log levels**: Info, Warning, Debug, Error
+- **Automatic email notifications** for errors via SMTP
+- **File-based logging** with automatic directory creation
+- **Caller information tracking** (file and line number)
+- **Graceful shutdown** with proper resource cleanup
+- **Configurable client naming** via environment variables or direct setting
+>>>>>>> 3a7b554 (docs: update README.md)
 
 ## Installation
 
 ```bash
+<<<<<<< HEAD
 go get github.com/Wires-Solucao-e-Servicos/golang-logger-module/log
 ```
 
@@ -62,12 +77,21 @@ The logger automatically creates log files in the following locations:
 ## Usage
 
 ### Basic Logging
+=======
+go get github.com/Wires-Solucao-e-Servicos/golang-logger-module
+```
+
+## Quick Start
+
+### Basic Usage
+>>>>>>> 3a7b554 (docs: update README.md)
 
 ```go
 package main
 
 import (
     "fmt"
+<<<<<<< HEAD
     
     "github.com/Wires-Solucao-e-Servicos/golang-logger-module/log"
 )
@@ -89,18 +113,85 @@ func main() {
     logger.Error("DB_ERROR", "DATABASE", err)
     
     // Properly close logger before application exit
+=======
+    "github.com/Wires-Solucao-e-Servicos/golang-logger-module/logger"
+)
+
+func main() {
+    //Optional: Set client name ("Undefined" if not set here or by the "CLIENT_NAME" environment variable)
+    logger.SetClientName("MyApp")
+
+    //Optional: Set SMTP configuration (No notification service if not loaded)
+    logger.LoadSMTPConfig("config/config.toml")
+
+    // Log different levels
+    logger.Info("APP_START", "MAIN", "Application started successfully")
+    logger.Warning("CONFIG_DEFAULT", "MAIN", "Using default configuration")
+    logger.Debug("USER_ACTION", "AUTH", "User login attempt")
+    logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
+    
+    // Graceful shutdown
+>>>>>>> 3a7b554 (docs: update README.md)
     defer logger.Close()
 }
 ```
 
+<<<<<<< HEAD
 ### Log Format
 
 All log entries follow this standardized format:
 
+=======
+## API Reference
+
+### Core Functions
+
+#### `logger.Info(code, module, text string)`
+Logs informational messages.
+
+#### `logger.Warning(code, module, text string)`
+Logs warning messages.
+
+#### `logger.Debug(code, module, text string)`
+Logs debug messages.
+
+#### `logger.Error(code, module string, err error)`
+Logs error messages and automatically sends email notification if SMTP is configured.
+
+#### `logger.Close()`
+Gracefully shuts down the logger, ensuring all messages are written before termination.
+
+### Configuration Functions
+
+#### `logger.SetClientName(name string)`
+Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
+
+#### `logger.GetClientName() string`
+Returns the current client name (thread-safe).
+
+#### `logger.LoadSMTPConfig(path string) error`
+Loads SMTP configuration from a TOML file for error notifications.
+
+### `logger.ValidateSMTPConfig(s *models.SMTP) error`
+Validate provided SMTP Configuration
+
+#### `logger.GetSMTPConfig() *models.SMTP`
+Returns the current SMTP configuration (thread-safe).
+
+### Adicional Functions
+
+### `logger.SendEmail(values models.Notification) error`
+Send email according to loaded configuration.
+
+## Log Format
+
+Logs follow this structured format:
+>>>>>>> 3a7b554 (docs: update README.md)
 ```
 [LEVEL] [TIMESTAMP] [MODULE] [CODE] [FILE:LINE] > message.
 ```
 
+<<<<<<< HEAD
 Example log entries:
 ```
 [INF] [15/01/2024 10:30:15] [MAIN] [APP_START] [main.go:10] > application started successfully.
@@ -257,6 +348,106 @@ The logger creates files with `0644` (read and write the file or directory and o
 - Ensure log files don't contain sensitive information
 - Consider log rotation for long-running applications
 - Use TLS/SSL for SMTP connections
+=======
+Example:
+```
+[ERR] [23/06/2025 14:30:15] [DATABASE] [CONN_FAIL] [main.go:42] > failed to connect to database.
+```
+
+## Directory Structure
+
+The logger automatically creates the following directory structure:
+
+**Windows:**
+```
+C:\Wires Workspace\Watchdog Service\Logs\Logs.txt
+```
+
+**Unix/Linux/macOS:**
+```
+~/Watchdog Service/Logs/Logs.txt
+```
+
+## SMTP Configuration Schema
+
+```go
+type SMTP struct {
+    Server   string   `toml:"server"`   // SMTP Server Address
+    Port     int      `toml:"port"`     // SMTP Server Port
+    Username string   `toml:"username"` // SMTP Username
+    Password string   `toml:"password"` // SMTP Password
+    From     string   `toml:"from"`     // Sender Email Address
+    To       []string `toml:"to"`       // Recipient Email Addresses
+}
+```
+
+Load the SMTP configuration:
+
+```go
+func main() {
+    // Load SMTP config for error notifications
+    if err := logger.LoadSMTPConfig("config.toml"); err != nil {
+        log.Printf("Failed to load SMTP config: %v", err)
+    }
+    
+    // Your application code here
+    logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
+}
+```
+
+## Error Handling
+
+The module includes comprehensive error handling:
+
+- **File operations**: Automatic directory creation with proper permissions
+- **SMTP validation**: Email address validation and connection testing
+- **Goroutine safety**: Protected channel operations and graceful shutdown
+- **Resource cleanup**: Automatic file closing and goroutine termination
+
+## Thread Safety
+
+All public functions are thread-safe:
+- Configuration access protected by `sync.RWMutex`
+- Singleton logger instance with `sync.Once`
+- Channel-based message processing prevents race conditions
+- Graceful shutdown with `sync.WaitGroup`
+
+## Environment Variables
+
+- `CLIENT_NAME`: Used if not set through `SetClientName()`
+
+## Dependencies
+
+- `github.com/pelletier/go-toml` - TOML configuration parsing
+- `github.com/jordan-wright/email` - Email sending functionality
+
+## Examples
+
+### Custom Error Handling
+
+```go
+func processData() error {
+    if err := validateInput(); err != nil {
+        logger.Error("INPUT_VALIDATION", "PROCESSOR", err)
+        return fmt.Errorf("validation failed: %w", err)
+    }
+    
+    logger.Info("PROCESS_START", "PROCESSOR", "Data processing initiated")
+    
+    if err := performProcessing(); err != nil {
+        logger.Error("PROCESS_EXECUTION", "PROCESSOR", err)
+        os.Exit(1)
+    }
+    
+    logger.Info("PROCESS_SUCCESS", "PROCESSOR", "Data processed successfully")
+    return nil
+}
+```
+
+## License
+
+This project is proprietary software owned by Wires Solução e Serviços.
+>>>>>>> 3a7b554 (docs: update README.md)
 
 ## Author
 

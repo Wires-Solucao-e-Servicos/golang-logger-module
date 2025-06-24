@@ -12,7 +12,8 @@ import (
 
 func SendEmail(values models.Notification) error {
 
-	clientName := ClientName
+	config := GetSMTPConfig()
+	clientName := GetClientName()
 
 	date, event, location, details := values.Datetime, values.Code, values.Location, values.Details
 
@@ -30,17 +31,17 @@ func SendEmail(values models.Notification) error {
 
 	e := email.NewEmail()
 
-	e.From 		= SMTPConfig.From
-	e.To 	 		= SMTPConfig.To
+	e.From 		= config.From
+	e.To 	 		= config.To
 	e.Subject = subject
 	e.Text 		= []byte(message.String())
 
-	smtpAddress := fmt.Sprintf("%s:%d", SMTPConfig.Server, SMTPConfig.Port)
+	smtpAddress := fmt.Sprintf("%s:%d", config.Server, config.Port)
 	smtpAuth := smtp.PlainAuth(
 		"",
-		SMTPConfig.Username,
-		SMTPConfig.Password,
-		SMTPConfig.Server,
+		config.Username,
+		config.Password,
+		config.Server,
 	)
 
 	err := e.Send(smtpAddress, smtpAuth)

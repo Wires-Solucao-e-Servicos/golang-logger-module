@@ -1,0 +1,7 @@
+[smtp]
+port = 587
+password = "password"
+server = "smtp.gmail.com"
+from = "email@gmail.com"
+to = ["email@gmail.com"]
+username = "email@gmail.com"

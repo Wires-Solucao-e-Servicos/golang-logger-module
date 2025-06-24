@@ -37,7 +37,15 @@ func main() {
 
     //Optional: Set SMTP configuration 
     // If not loaded, errors will only be logged locally
-    logger.LoadSMTPConfig("config/config.toml")
+    if err := logger.LoadSMTPConfig("config/config.toml"); err != nil {
+        log.Printf("Failed to load SMTP config: %v", err)
+    }
+
+    //Optional: Set custom logger directory
+    // Defaults to "C:/Project" on Windows and the user's home dir elsewhere
+    if err := logger.SetLoggerDirectory(""); err != nil {
+        log.Printf("Failed to change default logger directory: %v", err)
+    }
 
     // Log different levels
     logger.Info("APP_START", "MAIN", "Application started successfully")
@@ -78,7 +86,7 @@ logger.Close() // Shuts down the logger, ensuring all messages are written befor
 ### Configuration Functions
 
 ```go
-logger.SetClientName(name string) // Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
+logger.SetClientName(name string) // Sets the client name for log identification
 ```
 
 ```go
@@ -95,6 +103,10 @@ logger.ValidateSMTPConfig(s *models.SMTP) error // Validate provided SMTP Config
 
 ```go
 logger.GetSMTPConfig() *models.SMTP // Returns the current SMTP configuration (thread-safe).
+```
+
+```go
+logger.SetLoggerDirectory(path string) error// Change the default logger directory
 ```
 
 ### Adicional Functions
@@ -181,15 +193,17 @@ type Notification struct {
 Example of sending a custom notification email:
 
 ```go
-notification := models.Notification{
-    Datetime: logger.Timestamp(),
-    Code:     "CUSTOM_ALERT",
-    Location: fmt.Sprint(logger.GetCallerInfo()),
-    Details:  "Custom alert message details here",
-}
+func main() {
+    notification := models.Notification{
+        Datetime: logger.Timestamp(),
+        Code:     "CUSTOM_ALERT",
+        Location: fmt.Sprint(logger.GetCallerInfo()),
+        Details:  "Custom alert message details here",
+    }
 
-if err := logger.SendEmail(notification); err != nil {
-    errMsg := logger.FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", err))
+    if err := logger.SendEmail(notification); err != nil {
+        errMsg := logger.FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", err))
+    }
 }
 ```
 

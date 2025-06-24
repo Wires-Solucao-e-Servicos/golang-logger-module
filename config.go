@@ -37,7 +37,7 @@ func SetClientName(name string) {
 func GetClientName() string {
 	rwmu.RLock()
 	defer rwmu.RUnlock()
-	
+
 	return clientName
 }
 
@@ -98,9 +98,10 @@ func LoadSMTPConfig(path string) error {
 	}
 
 	rwmu.Lock()
+	defer rwmu.Unlock()
+
 	SMTPConfig = config
 
-	rwmu.Unlock()
 	
 	return nil
 }

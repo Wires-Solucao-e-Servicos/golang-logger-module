@@ -121,6 +121,7 @@ func (l *Log) run() {
 				for message := range l.channel {
 					l.logger.Println(message)
 				}
+				return
 		}
 	}
 }
@@ -162,6 +163,11 @@ func Error(code, module string, err error) {
 	instance.channel <- message
 
 	go func() {
+
+		if instance == nil {
+			return
+		}
+		
 		notification := models.Notification{
 			Datetime: Timestamp(),
 			Code:     code,

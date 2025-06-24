@@ -85,12 +85,16 @@ func LoadSMTPConfig(path string) error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
+	fmt.Printf("DBG 1: %v", data)
+
 	config := &models.SMTP{}
 
 	err = toml.Unmarshal(data, config)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal SMTP configuration: %w", err)
 	}
+
+	fmt.Printf("DBG 2: %v", config)
 
 	err = ValidateSMTPConfig(config)
 	if err != nil {

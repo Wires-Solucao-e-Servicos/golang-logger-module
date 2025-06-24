@@ -1,4 +1,4 @@
-package models
+package logger
 
 type SMTP struct {
 	Server   string   `toml:"server"`

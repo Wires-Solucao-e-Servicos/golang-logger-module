@@ -27,7 +27,7 @@ package main
 
 import (
     "fmt"
-    "github.com/Wires-Solucao-e-Servicos/golang-logger-module/logger"
+    "github.com/Wires-Solucao-e-Servicos/golang-logger-module"
 )
 
 func main() {
@@ -98,11 +98,11 @@ logger.LoadSMTPConfig(path string) error // Loads SMTP configuration from a TOML
 ```
 
 ```go
-logger.ValidateSMTPConfig(s *models.SMTP) error // Validate provided SMTP Configuration.
+logger.ValidateSMTPConfig(s *SMTP) error // Validate provided SMTP Configuration.
 ```
 
 ```go
-logger.GetSMTPConfig() *models.SMTP // Returns the current SMTP configuration (thread-safe).
+logger.GetSMTPConfig() *SMTP // Returns the current SMTP configuration (thread-safe).
 ```
 
 ```go
@@ -112,7 +112,7 @@ logger.SetLoggerDirectory(path string) error// Change the default logger directo
 ### Adicional Functions
 
 ```go
-logger.SendEmail(values models.Notification) error // Send email according to loaded configuration.
+logger.SendEmail(values Notification) error // Send email according to loaded configuration.
 ```
 
 ## Log Format
@@ -144,6 +144,42 @@ C:\Wires Workspace\Watchdog Service\Logs\Logs.txt
 ```
 ~/Watchdog Service/Logs/Logs.txt
 ```
+
+## Models
+
+The module defines two main data structures:
+
+### SMTP Configuration
+
+The `SMTP` struct defines the email server configuration:
+
+```go
+type SMTP struct {
+    Server   string   `toml:"server"`    // SMTP server address (e.g., "smtp.gmail.com")
+    Port     int      `toml:"port"`      // SMTP server port (e.g., 587 for TLS)
+    Username string   `toml:"username"`  // SMTP authentication username
+    Password string   `toml:"password"`  // SMTP authentication password
+    From     string   `toml:"from"`      // Sender email address
+    To       []string `toml:"to"`        // List of recipient email addresses
+}
+```
+
+This struct is automatically populated when loading configuration via `LoadSMTPConfig()` and includes TOML tags for proper file parsing.
+
+### Notification Structure
+
+The `Notification` struct represents an email notification payload:
+
+```go
+type Notification struct {
+    Datetime string  // Timestamp when the event occurred
+    Code     string  // Event identification code
+    Location string  // Source file and line number where the event was logged
+    Details  string  // Complete formatted log message with full context
+}
+```
+
+This struct is used internally by the `Error()` function and can be used directly with `SendEmail()` for custom notifications.
 
 ## SMTP Configuration Schema
 
@@ -178,22 +214,11 @@ func main() {
 
 You can send email notifications without logging an error by directly using the `SendEmail` function with a properly formatted `Notification` struct.
 
-The `Notification` struct must have the following fields:
-
-```go
-type Notification struct {
-    Datetime string  // Timestamp of the event
-    Code     string  // A code identifying the event
-    Location string  // Caller info (file:line)
-    Details  string  // Message details
-}
-```
-
 Example of sending a custom notification email:
 
 ```go
 func main() {
-    notification := models.Notification{
+    notification := logger.Notification{
         Datetime: logger.Timestamp(),
         Code:     "CUSTOM_ALERT",
         Location: fmt.Sprint(logger.GetCallerInfo()),
@@ -207,7 +232,6 @@ func main() {
 ```
 
 Make sure the `Notification` fields follow the expected format so the email content and log formatting work correctly.
-
 
 ## Error Handling
 

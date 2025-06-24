@@ -179,7 +179,10 @@ func Error(code, module string, err error) {
 	message := FormatLog("ERR", module, code, text)
 	instance.channel <- message
 
+	instance.wg.Add(1)
 	go func() {
+
+		defer instance.wg.Done()
 
 		if instance == nil || SMTPConfig == nil {
 			return
@@ -192,10 +195,16 @@ func Error(code, module string, err error) {
 			Details:  message,
 		}
 		
+		var errMsg string
+
 		if err := SendEmail(notification); err != nil {
-			errMsg := FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", message))
-			instance.channel <- errMsg
+			errMsg = FormatLog("ERR", "LOGGER_NOTIFY", "SMTP_ERROR", fmt.Sprintf("failed to send notification: %v", message))
 		} 
+
+		if errMsg != "" {
+			instance.channel <- errMsg
+		}
+
 	} ()
 	
 }

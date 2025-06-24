@@ -20,7 +20,7 @@ var (
 var clientName string = "Undefined"
 
 func SetClientName(name string) {
-	rwmu.RLock()
+	rwmu.Lock()
 	defer rwmu.Unlock()
 
 	if name != "" {
@@ -38,7 +38,7 @@ func GetClientName() string {
 	return clientName
 }
 
-func validateSMTPConfig(s *models.SMTP) error {
+func ValidateSMTPConfig(s *models.SMTP) error {
 	if s.Server == "" {
 		return fmt.Errorf("server is required")
 	}
@@ -89,7 +89,7 @@ func LoadSMTPConfig(path string) error {
 		return fmt.Errorf("failed to unmarshal SMTP configuration: %w", err)
 	}
 
-	err = validateSMTPConfig(SMTPConfig)
+	err = ValidateSMTPConfig(config)
 	if err != nil {
 		return fmt.Errorf("invalid SMTP config: %w", err)
 	}
@@ -100,4 +100,11 @@ func LoadSMTPConfig(path string) error {
 	rwmu.Unlock()
 	
 	return nil
+}
+
+func GetSMTPConfig() *models.SMTP {
+	rwmu.Lock()
+	defer rwmu.Unlock()
+
+	return SMTPConfig
 }

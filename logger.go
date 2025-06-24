@@ -22,8 +22,9 @@ type Log struct {
 }
 
 var (
-	instance   *Log
-	once       sync.Once
+	instance   			 *Log
+	once       			 sync.Once
+	defaultDirectory string
 )
 
 func GetCallerInfo() (string, int) {
@@ -47,41 +48,57 @@ func Timestamp() string {
 	return time.Now().Format("02/01/2006 15:04:05")
 }
 
+func SetLoggerDirectory(path string) error {
+	rwmu.Lock()
+	defer rwmu.Unlock()
+
+	if strings.TrimSpace(path) == "" {
+			return fmt.Errorf("empty path: logger directory not changed")
+	}
+
+	defaultDirectory = path
+	return nil
+}
+
 func CreateLoggerDirectory() (*os.File, error) {
+	folderName := "Logger Module"
+	var baseDirectory string
 
-	var programDirectory string
-		folderName := "Watchdog Service"
-
-		if runtime.GOOS == "windows" {
-			programDirectory = filepath.Join("C:\\Wires Workspace", folderName)
-		} else {
-			homeDirectory, err := os.UserHomeDir()
-			if err != nil {
-				return nil, fmt.Errorf("home dir not found: %s", err)
+	if defaultDirectory != "" {
+			baseDirectory = defaultDirectory
+	} else {
+			if runtime.GOOS == "windows" {
+					baseDirectory = "C:\\Project"
+			} else {
+					home, err := os.UserHomeDir()
+					if err != nil {
+							return nil, fmt.Errorf("home dir not found: %w", err)
+					}
+					baseDirectory = home
 			}
-			programDirectory = filepath.Join(homeDirectory, folderName)
-		}
+	}
 
-		logDirectory := filepath.Join(programDirectory, "Logs")
-		if err := os.MkdirAll(logDirectory, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create logs dir: %v", err)
-		}
+	programDirectory := filepath.Join(baseDirectory, folderName)
 
-		logPath := filepath.Join(logDirectory, "Logs.txt")
+	if err := os.MkdirAll(programDirectory, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create directory: %w", err)
+	}
 
-		if _, err := os.Stat(logPath); os.IsNotExist(err) {
-			err = os.WriteFile(logPath, fmt.Appendf(nil, "[Wires Watchdog Service - %s] \n\n", GetClientName()), 0644)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create log file: %v", err)
+	logPath := filepath.Join(programDirectory, "Logs.txt")
+
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+			header := fmt.Sprintf("[Logger Module - %s]\n\n", GetClientName())
+			if err := os.WriteFile(logPath, []byte(header), 0644); err != nil {
+					return nil, fmt.Errorf("failed to create log file: %w", err)
 			}
-		}
+	}
 
-		logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open log file: %v", err)
-		}
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+			return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
 
-		return logFile, nil
+	return logFile, nil
 }
 
 func Init() {

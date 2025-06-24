@@ -31,10 +31,12 @@ import (
 )
 
 func main() {
-    //Optional: Set client name ("Undefined" if not set here or by the "CLIENT_NAME" environment variable)
+    // Optional: Set client name for log identification 
+    // Defaults to "Undefined" if not set here or via the "CLIENT_NAME" environment variable
     logger.SetClientName("MyApp")
 
-    //Optional: Set SMTP configuration (No notification service if not loaded)
+    //Optional: Set SMTP configuration 
+    // If not loaded, errors will only be logged locally
     logger.LoadSMTPConfig("config/config.toml")
 
     // Log different levels
@@ -42,7 +44,7 @@ func main() {
     logger.Warning("CONFIG_DEFAULT", "MAIN", "Using default configuration")
     logger.Debug("USER_ACTION", "AUTH", "User login attempt")
     logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
-    
+
     // Graceful shutdown
     defer logger.Close()
 }
@@ -55,26 +57,31 @@ func main() {
 ```go
 logger.Info(code, module, text string)
 ```
+
 Logs informational messages.
 
 ```go
 logger.Warning(code, module, text string)
 ```
+
 Logs warning messages.
 
 ```go
 logger.Debug(code, module, text string)`
 ```
+
 Logs debug messages.
 
 ```go
 logger.Error(code, module string, err error)`
 ```
-Logs error messages and automatically sends email notification if SMTP is configured.
+
+Logs error messages and automatically sends email notification.
 
 ```go
 logger.Close()`
 ```
+
 Gracefully shuts down the logger, ensuring all messages are written before termination.
 
 ### Configuration Functions
@@ -82,26 +89,31 @@ Gracefully shuts down the logger, ensuring all messages are written before termi
 ```go
 logger.SetClientName(name string)
 ```
+
 Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
 
 ```go
 logger.GetClientName() string
 ```
+
 Returns the current client name (thread-safe).
 
 ```go
 logger.LoadSMTPConfig(path string) error
 ```
+
 Loads SMTP configuration from a TOML file for error notifications.
 
 ```go
 logger.ValidateSMTPConfig(s *models.SMTP) error
 ```
-Validate provided SMTP Configuration
+
+Validate provided SMTP Configuration.
 
 ```go
 logger.GetSMTPConfig() *models.SMTP
 ```
+
 Returns the current SMTP configuration (thread-safe).
 
 ### Adicional Functions
@@ -115,11 +127,13 @@ Send email according to loaded configuration.
 ## Log Format
 
 Logs follow this structured format:
+
 ```
 [LEVEL] [TIMESTAMP] [MODULE] [CODE] [FILE:LINE] > message.
 ```
 
 Example:
+
 ```
 [ERR] [23/06/2025 14:30:15] [DATABASE] [CONN_FAIL] [main.go:42] > failed to connect to database.
 ```
@@ -129,37 +143,42 @@ Example:
 The logger automatically creates the following directory structure:
 
 **Windows:**
+
 ```
 C:\Wires Workspace\Watchdog Service\Logs\Logs.txt
 ```
 
 **Unix/Linux/macOS:**
+
 ```
 ~/Watchdog Service/Logs/Logs.txt
 ```
 
 ## SMTP Configuration Schema
 
-```go
-type SMTP struct {
-    Server   string   `toml:"server"`   // SMTP Server Address
-    Port     int      `toml:"port"`     // SMTP Server Port
-    Username string   `toml:"username"` // SMTP Username
-    Password string   `toml:"password"` // SMTP Password
-    From     string   `toml:"from"`     // Sender Email Address
-    To       []string `toml:"to"`       // Recipient Email Addresses
-}
+To enable email notifications on errors, you must create a config.toml file with the SMTP configuration and load it using the `LoadSMTPConfig(path string)` function.
+
+Use config/config.toml.example as a reference for the required structure. If this configuration isn’t loaded, errors will be logged locally but no email alerts will be sent.
+
+```toml
+[smtp]
+port = 587
+password = "password"
+server = "smtp.gmail.com"
+from = "email@gmail.com"
+to = ["email@gmail.com"]
+username = "email@gmail.com"
 ```
 
 Load the SMTP configuration:
 
 ```go
 func main() {
-    // Load SMTP config for error notifications
-    if err := logger.LoadSMTPConfig("config.toml"); err != nil {
+    // Use the relative path to your config file, e.g., "config/config.toml"
+    if err := logger.LoadSMTPConfig("config/config.toml"); err != nil {
         log.Printf("Failed to load SMTP config: %v", err)
     }
-    
+
     // Your application code here
     logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
 }
@@ -177,6 +196,7 @@ The module includes comprehensive error handling:
 ## Thread Safety
 
 All public functions are thread-safe:
+
 - Configuration access protected by `sync.RWMutex`
 - Singleton logger instance with `sync.Once`
 - Channel-based message processing prevents race conditions
@@ -201,14 +221,14 @@ func processData() error {
         logger.Error("INPUT_VALIDATION", "PROCESSOR", err)
         return fmt.Errorf("validation failed: %w", err)
     }
-    
+
     logger.Info("PROCESS_START", "PROCESSOR", "Data processing initiated")
-    
+
     if err := performProcessing(); err != nil {
         logger.Error("PROCESS_EXECUTION", "PROCESSOR", err)
         os.Exit(1)
     }
-    
+
     logger.Info("PROCESS_SUCCESS", "PROCESSOR", "Data processed successfully")
     return nil
 }

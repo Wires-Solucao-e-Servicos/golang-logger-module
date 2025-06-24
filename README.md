@@ -52,41 +52,64 @@ func main() {
 
 ### Core Functions
 
-#### `logger.Info(code, module, text string)`
+```go
+logger.Info(code, module, text string)
+```
 Logs informational messages.
 
-#### `logger.Warning(code, module, text string)`
+```go
+logger.Warning(code, module, text string)
+```
 Logs warning messages.
 
-#### `logger.Debug(code, module, text string)`
+```go
+logger.Debug(code, module, text string)`
+```
 Logs debug messages.
 
-#### `logger.Error(code, module string, err error)`
+```go
+logger.Error(code, module string, err error)`
+```
 Logs error messages and automatically sends email notification if SMTP is configured.
 
-#### `logger.Close()`
+```go
+logger.Close()`
+```
 Gracefully shuts down the logger, ensuring all messages are written before termination.
 
 ### Configuration Functions
 
-#### `logger.SetClientName(name string)`
+```go
+logger.SetClientName(name string)
+```
 Sets the client name for log identification. Falls back to `CLIENT_NAME` environment variable if name is empty.
 
-#### `logger.GetClientName() string`
+```go
+logger.GetClientName() string
+```
 Returns the current client name (thread-safe).
 
-#### `logger.LoadSMTPConfig(path string) error`
+```go
+logger.LoadSMTPConfig(path string) error
+```
 Loads SMTP configuration from a TOML file for error notifications.
 
-### `logger.ValidateSMTPConfig(s *models.SMTP) error`
+```go
+logger.ValidateSMTPConfig(s *models.SMTP) error
+```
 Validate provided SMTP Configuration
 
-#### `logger.GetSMTPConfig() *models.SMTP`
+```go
+logger.GetSMTPConfig() *models.SMTP
+```
 Returns the current SMTP configuration (thread-safe).
 
 ### Adicional Functions
 
-### `logger.SendEmail(values models.Notification) error`
+```go
+logger.SendEmail(values models.Notification) error
+```
+
 Send email according to loaded configuration.
 
 ## Log Format

@@ -1,9 +1,11 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"net/smtp"
 	"strings"
+	"time"
 
 	models "github.com/Wires-Solucao-e-Servicos/golang-logger-module/models"
 
@@ -12,42 +14,53 @@ import (
 
 func SendEmail(values models.Notification) error {
 
-	config := GetSMTPConfig()
-	clientName := GetClientName()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	date, event, location, details := values.Datetime, values.Code, values.Location, values.Details
+	done := make(chan error, 1)
 
-	subject := fmt.Sprint("Defense Backup Service Notification - " + clientName)
+	go func() {
+		config := GetSMTPConfig()
+		clientName := GetClientName()
 
-	var message strings.Builder
+		date, event, location, details := values.Datetime, values.Code, values.Location, values.Details
 
-	fmt.Fprintf(&message,
-		"The following event occurred in the Defense Backup Service at %s:\n\n"+
-		"Date: %s\n"+
-		"Event: %s\n"+
-		"Location: %s\n"+
-		"Details: %s\n", clientName, date, event, location, details,
-	)
+		subject := fmt.Sprint("Defense Backup Service Notification - " + clientName)
 
-	e := email.NewEmail()
+		var message strings.Builder
 
-	e.From 		= config.From
-	e.To 	 		= config.To
-	e.Subject = subject
-	e.Text 		= []byte(message.String())
+		fmt.Fprintf(&message,
+			"The following event occurred in the Defense Backup Service at %s:\n\n"+
+			"Date: %s\n"+
+			"Event: %s\n"+
+			"Location: %s\n"+
+			"Details: %s\n", clientName, date, event, location, details,
+		)
 
-	smtpAddress := fmt.Sprintf("%s:%d", config.Server, config.Port)
-	smtpAuth := smtp.PlainAuth(
-		"",
-		config.Username,
-		config.Password,
-		config.Server,
-	)
+		e := email.NewEmail()
 
-	err := e.Send(smtpAddress, smtpAuth)
-	if err != nil {
-		return err
+		e.From 		= config.From
+		e.To 	 		= config.To
+		e.Subject = subject
+		e.Text 		= []byte(message.String())
+
+		smtpAddress := fmt.Sprintf("%s:%d", config.Server, config.Port)
+		smtpAuth := smtp.PlainAuth(
+			"",
+			config.Username,
+			config.Password,
+			config.Server,
+		)
+
+		done <- e.Send(smtpAddress, smtpAuth)
+
+	} ()
+
+	select {
+		case err := <- done:
+			return err
+		case <- ctx.Done():
+			return fmt.Errorf("email sending timeout after 30s")
 	}
-	
-	return nil
+
 }

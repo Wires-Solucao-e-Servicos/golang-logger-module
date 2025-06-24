@@ -2,29 +2,73 @@ package logger
 
 import (
 	"fmt"
+	"net/mail"
 	"os"
 	"path/filepath"
+	"sync"
 
 	models "github.com/Wires-Solucao-e-Servicos/golang-logger-module/models"
 
 	"github.com/pelletier/go-toml"
 )
 
-var ClientName string
-var SMTPConfig *models.SMTP
+var (
+	rwmu 				sync.RWMutex
+	SMTPConfig 	*models.SMTP
+)
+
+var clientName string = "Undefined"
 
 func SetClientName(name string) {
+	rwmu.RLock()
+	defer rwmu.Unlock()
+
 	if name != "" {
-		ClientName = name
+		clientName = name
 		return
 	}
 
 	if envName := os.Getenv("CLIENT_NAME"); envName != "" {
-		ClientName = envName
+		clientName = envName
 		return
 	}
+}
 
-	ClientName = "Undefined"
+func GetClientName() string {
+	return clientName
+}
+
+func validateSMTPConfig(s *models.SMTP) error {
+	if s.Server == "" {
+		return fmt.Errorf("server is required")
+	}
+	if s.Port <= 0 || s.Port > 65535 {
+		return fmt.Errorf("port must be between 1 and 65535")
+	}
+	if s.Username == "" {
+		return fmt.Errorf("username is required")
+	}
+	if s.Password == "" {
+		return fmt.Errorf("password is required")
+	}
+	if s.From == "" {
+		return fmt.Errorf("from address is required")
+	}
+	if len(s.To) == 0 {
+		return fmt.Errorf("at least one recipient is required")
+	}
+	
+	if _, err := mail.ParseAddress(s.From); err != nil {
+		return fmt.Errorf("invalid from address: %w", err)
+	}
+	
+	for _, addr := range s.To {
+		if _, err := mail.ParseAddress(addr); err != nil {
+			return fmt.Errorf("invalid to address %s: %w", addr, err)
+		}
+	}
+	
+	return nil
 }
 
 func LoadSMTPConfig(path string) error {
@@ -45,16 +89,15 @@ func LoadSMTPConfig(path string) error {
 		return fmt.Errorf("failed to unmarshal SMTP configuration: %w", err)
 	}
 
-	if  config.Server == "" ||
-			config.Port == 0 ||
-			config.Username == "" ||
-			config.Password == "" ||
-			config.From == "" ||
-			len(config.To) == 0 {
-		return fmt.Errorf("missing required SMTP configuration fields")
+	err = validateSMTPConfig(SMTPConfig)
+	if err != nil {
+		return fmt.Errorf("invalid SMTP config: %w", err)
 	}
 
+	rwmu.Lock()
 	SMTPConfig = config
+
+	rwmu.Unlock()
 	
 	return nil
 }

@@ -7,12 +7,10 @@ import (
 	"strings"
 	"time"
 
-	models "github.com/Wires-Solucao-e-Servicos/golang-logger-module/models"
-
 	"github.com/jordan-wright/email"
 )
 
-func SendEmail(values models.Notification) error {
+func SendEmail(values Notification) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

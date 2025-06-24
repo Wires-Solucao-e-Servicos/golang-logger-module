@@ -7,14 +7,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	models "github.com/Wires-Solucao-e-Servicos/golang-logger-module/models"
-
 	"github.com/pelletier/go-toml"
 )
 
 var (
 	rwmu 				sync.RWMutex
-	SMTPConfig 	*models.SMTP
+	SMTPConfig 	*SMTP
 )
 
 var clientName string = "Undefined"
@@ -41,7 +39,7 @@ func GetClientName() string {
 	return clientName
 }
 
-func ValidateSMTPConfig(s *models.SMTP) error {
+func ValidateSMTPConfig(s *SMTP) error {
 	if s.Server == "" {
 		return fmt.Errorf("server is required")
 	}
@@ -87,7 +85,7 @@ func LoadSMTPConfig(path string) error {
 
 	fmt.Printf("DBG 1: %v", data)
 
-	config := &models.SMTP{}
+	config := &SMTP{}
 
 	err = toml.Unmarshal(data, config)
 	if err != nil {
@@ -110,7 +108,7 @@ func LoadSMTPConfig(path string) error {
 	return nil
 }
 
-func GetSMTPConfig() *models.SMTP {
+func GetSMTPConfig() *SMTP {
 	rwmu.RLock()
 	defer rwmu.RUnlock()
 

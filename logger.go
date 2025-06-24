@@ -9,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	models "github.com/Wires-Solucao-e-Servicos/golang-logger-module/models"
 )
 
 type Log struct {
@@ -188,7 +186,7 @@ func Error(code, module string, err error) {
 			return
 		}
 		
-		notification := models.Notification{
+		notification := Notification{
 			Datetime: Timestamp(),
 			Code:     code,
 			Location: fmt.Sprint(GetCallerInfo()),

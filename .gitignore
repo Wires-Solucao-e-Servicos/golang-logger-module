@@ -1,3 +1,4 @@
-*.toml
-config/*.toml
 .env
+*.toml
+*_test.go
+config/*.toml

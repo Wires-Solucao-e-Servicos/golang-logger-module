@@ -32,7 +32,7 @@ import (
 
 func main() {
     // Optional: Set client name for log identification 
-    // Defaults to "Undefined" if not set here or via the "CLIENT_NAME" environment variable
+    // Defaults to "Golang Logger" if not set here or via the "CLIENT_NAME" environment variable
     logger.SetClientName("MyApp")
 
     // Optional: Load SMTP configuration from TOML or ENV
@@ -143,13 +143,13 @@ The logger automatically creates the following directory structure:
 **Windows:**
 
 ```
-C:\Wires Workspace\Watchdog Service\Logs\Logs.txt
+C:\CLIENT_NAME\logs.txt
 ```
 
 **Unix/Linux/macOS:**
 
 ```
-~/Watchdog Service/Logs/Logs.txt
+~/CLIENT_NAME/logs.txt
 ```
 
 ## Models
@@ -281,7 +281,7 @@ All public functions are thread-safe:
 
 ## Environment Variables
 
-- `CLIENT_NAME`: Used if not set through `SetClientName()`
+- `CLIENT_NAME`: Can be set through `SetClientName(name string)`
 - `SMTP_SERVER`: SMTP server address
 - `SMTP_PORT`: SMTP server port (defaults to 587 if invalid)
 - `SMTP_USERNAME`: SMTP authentication username
@@ -291,9 +291,9 @@ All public functions are thread-safe:
 
 ## Dependencies
 
+- `github.com/joho/godotenv` - Environment variable loading from .env files
 - `github.com/pelletier/go-toml` - TOML configuration parsing
 - `github.com/jordan-wright/email` - Email sending functionality
-- `github.com/joho/godotenv` - Environment variable loading from .env files
 
 ## Examples
 

@@ -16,7 +16,7 @@ import (
 var (
 	rwmu 				sync.RWMutex
 	SMTPConfig 	*SMTP
-	clientName string = "Undefined"
+	clientName string = "Golang Logger"
 )
 
 func SetClientName(name string) {
@@ -27,15 +27,21 @@ func SetClientName(name string) {
 		clientName = name
 		return
 	}
-
-	if envName := os.Getenv("CLIENT_NAME"); envName != "" {
-		clientName = envName
-	}
 }
 
 func GetClientName() string {
+	envName := os.Getenv("CLIENT_NAME");
+	
 	rwmu.RLock()
 	defer rwmu.RUnlock()
+
+	if clientName != "Golang Logger" {
+		return clientName
+	}
+
+	if envName != "" {
+		return envName
+	} 
 
 	return clientName
 }

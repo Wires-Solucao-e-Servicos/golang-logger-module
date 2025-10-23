@@ -5,17 +5,19 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/joho/godotenv"
 	"github.com/pelletier/go-toml"
 )
 
 var (
 	rwmu 				sync.RWMutex
 	SMTPConfig 	*SMTP
+	clientName string = "Undefined"
 )
-
-var clientName string = "Undefined"
 
 func SetClientName(name string) {
 	rwmu.Lock()
@@ -28,7 +30,6 @@ func SetClientName(name string) {
 
 	if envName := os.Getenv("CLIENT_NAME"); envName != "" {
 		clientName = envName
-		return
 	}
 }
 
@@ -72,27 +73,31 @@ func ValidateSMTPConfig(s *SMTP) error {
 	return nil
 }
 
-func LoadSMTPConfig(path string) error {
-	absPath, err := filepath.Abs(path)
+func LoadENVConfig() error {
+	err := godotenv.Load()
 	if err != nil {
-		return fmt.Errorf("invalid config path: %w", err)
+		return fmt.Errorf("failed to load env config: %w", err);
 	}
 
-	data, err := os.ReadFile(absPath)
+	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
+		port = 587
 	}
 
-	fmt.Printf("DBG 1: %v", data)
+	var to []string
+  toStr := os.Getenv("SMTP_TO")
+  if toStr != "" {
+    to = strings.Split(toStr, ",")
+  }
 
-	config := &SMTP{}
-
-	err = toml.Unmarshal(data, config)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal SMTP configuration: %w", err)
+	config := &SMTP{
+		Server: os.Getenv("SMTP_HOST"),
+		Port: port,
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From: os.Getenv("SMTP_FROM"),
+		To: to,
 	}
-
-	fmt.Printf("DBG 2: %v", config)
 
 	err = ValidateSMTPConfig(config)
 	if err != nil {
@@ -103,7 +108,37 @@ func LoadSMTPConfig(path string) error {
 	defer rwmu.Unlock()
 
 	SMTPConfig = config
+	
+	return nil
+}
 
+func LoadTOMLConfig(path string) error {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("invalid config path: %w", err)
+	}
+
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	config := &SMTP{}
+
+	err = toml.Unmarshal(data, config)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal SMTP configuration: %w", err)
+	}
+
+	err = ValidateSMTPConfig(config)
+	if err != nil {
+		return fmt.Errorf("invalid SMTP config: %w", err)
+	}
+
+	rwmu.Lock()
+	defer rwmu.Unlock()
+
+	SMTPConfig = config
 	
 	return nil
 }

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/smtp"
 	"strings"
@@ -23,12 +24,12 @@ func SendEmail(values Notification) error {
 
 		date, event, location, details := values.Datetime, values.Code, values.Location, values.Details
 
-		subject := fmt.Sprint("Defense Backup Service Notification - " + clientName)
+		subject := fmt.Sprint("Logger Notification Service - " + clientName)
 
 		var message strings.Builder
 
 		fmt.Fprintf(&message,
-			"The following event occurred in the Defense Backup Service at %s:\n\n"+
+			"The following event occurred at %s:\n\n"+
 			"Date: %s\n"+
 			"Event: %s\n"+
 			"Location: %s\n"+
@@ -50,7 +51,12 @@ func SendEmail(values Notification) error {
 			config.Server,
 		)
 
-		done <- e.Send(smtpAddress, smtpAuth)
+		tlsConfig := &tls.Config{
+			ServerName: config.Server,
+			InsecureSkipVerify: false,
+		}
+
+		done <- e.SendWithTLS(smtpAddress, smtpAuth, tlsConfig)
 
 	} ()
 

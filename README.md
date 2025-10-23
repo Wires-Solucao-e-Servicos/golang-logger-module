@@ -1,6 +1,6 @@
 # Golang Logger Module
 
-A comprehensive Go logging module with file-based logging and email notification capabilities, designed for the Watchdog Service monitoring system.
+A comprehensive Go logging module with file-based logging and email notification capabilities.
 
 ## Features
 
@@ -10,7 +10,7 @@ A comprehensive Go logging module with file-based logging and email notification
 - **File-based logging** with automatic directory creation
 - **Caller information tracking** (file and line number)
 - **Graceful shutdown** with proper resource cleanup
-- **Configurable client naming** via environment variables or direct setting
+- **Flexible configuration**: Load from TOML file or environment variables
 
 ## Installation
 
@@ -35,11 +35,15 @@ func main() {
     // Defaults to "Undefined" if not set here or via the "CLIENT_NAME" environment variable
     logger.SetClientName("MyApp")
 
-    //Optional: Set SMTP configuration 
+    // Optional: Load SMTP configuration from TOML or ENV
     // If not loaded, errors will only be logged locally
-    if err := logger.LoadSMTPConfig("config/config.toml"); err != nil {
-        log.Printf("Failed to load SMTP config: %v", err)
+    if err := logger.LoadTOMLConfig("config/config.toml"); err != nil {
+        log.Printf("Failed to load TOML config: %v", err)
     }
+    // OR load from .env file
+    // if err := logger.LoadENVConfig(); err != nil {
+    //     log.Printf("Failed to load ENV config: %v", err)
+    // }
 
     //Optional: Set custom logger directory
     // Defaults to "C:/Project" on Windows and the user's home dir elsewhere
@@ -82,7 +86,6 @@ logger.Error(code, module string, err error) //Logs error messages and automatic
 logger.Close() // Shuts down the logger, ensuring all messages are written before termination.
 ```
 
-
 ### Configuration Functions
 
 ```go
@@ -90,23 +93,27 @@ logger.SetClientName(name string) // Sets the client name for log identification
 ```
 
 ```go
-logger.GetClientName() string // Returns the current client name (thread-safe).
+logger.GetClientName() string // Returns the current client name (thread-safe)
 ```
 
 ```go
-logger.LoadSMTPConfig(path string) error // Loads SMTP configuration from a TOML file for error notifications.
+logger.LoadTOMLConfig(path string) error // Loads SMTP configuration from a TOML file
 ```
 
 ```go
-logger.ValidateSMTPConfig(s *SMTP) error // Validate provided SMTP Configuration.
+logger.LoadENVConfig() error // Loads SMTP configuration from environment variables (.env file)
 ```
 
 ```go
-logger.GetSMTPConfig() *SMTP // Returns the current SMTP configuration (thread-safe).
+logger.ValidateSMTPConfig(s *SMTP) error // Validates provided SMTP configuration
 ```
 
 ```go
-logger.SetLoggerDirectory(path string) error// Change the default logger directory
+logger.GetSMTPConfig() *SMTP // Returns the current SMTP configuration (thread-safe)
+```
+
+```go
+logger.SetLoggerDirectory(path string) error // Changes the default logger directory
 ```
 
 ### Adicional Functions
@@ -155,16 +162,16 @@ The `SMTP` struct defines the email server configuration:
 
 ```go
 type SMTP struct {
-    Server   string   `toml:"server"`    // SMTP server address (e.g., "smtp.gmail.com")
-    Port     int      `toml:"port"`      // SMTP server port (e.g., 587 for TLS)
-    Username string   `toml:"username"`  // SMTP authentication username
-    Password string   `toml:"password"`  // SMTP authentication password
-    From     string   `toml:"from"`      // Sender email address
-    To       []string `toml:"to"`        // List of recipient email addresses
+    Server   string   `toml:"server" env:"SMTP_SERVER"`     // SMTP server address (e.g., "smtp.gmail.com")
+    Port     int      `toml:"port" env:"SMTP_PORT"`         // SMTP server port (e.g., 587 for TLS)
+    Username string   `toml:"username" env:"SMTP_USERNAME"` // SMTP authentication username
+    Password string   `toml:"password" env:"SMTP_PASSWORD"` // SMTP authentication password
+    From     string   `toml:"from" env:"SMTP_FROM"`         // Sender email address
+    To       []string `toml:"to" env:"SMTP_TO"`             // List of recipient email addresses
 }
 ```
 
-This struct is automatically populated when loading configuration via `LoadSMTPConfig()` and includes TOML tags for proper file parsing.
+This struct is automatically populated when loading configuration via `LoadTOMLConfig()` or `LoadENVConfig()` and includes tags for both TOML and environment variable parsing.
 
 ### Notification Structure
 
@@ -181,34 +188,55 @@ type Notification struct {
 
 This struct is used internally by the `Error()` function and can be used directly with `SendEmail()` for custom notifications.
 
-## SMTP Configuration Schema
+## SMTP Configuration
 
-To enable email notifications on errors, you must create a config.toml file with the SMTP configuration and load it using the `LoadSMTPConfig(path string)` function.
+To enable email notifications on errors, you have two options:
 
-Use config/config.toml.example as a reference for the required structure. If this configuration isn’t loaded, errors will be logged locally but no email alerts will be sent.
+### Option 1: TOML Configuration File
+
+Create a `config.toml` file with the SMTP configuration:
 
 ```toml
-port = 587
-password = "password"
 server = "smtp.gmail.com"
-from = "email@gmail.com"
-to = ["email@gmail.com"]
+port = 587
 username = "email@gmail.com"
+password = "your-app-password"
+from = "email@gmail.com"
+to = ["recipient1@gmail.com", "recipient2@gmail.com"]
 ```
 
-Load the SMTP configuration:
+Load the configuration:
 
 ```go
-func main() {
-    // Use the relative path to your config file, e.g., "config/config.toml"
-    if err := logger.LoadSMTPConfig("config/config.toml"); err != nil {
-        log.Printf("Failed to load SMTP config: %v", err)
-    }
-
-    // Your application code here
-    logger.Error("DB_CONNECTION", "DATABASE", fmt.Errorf("failed to connect to database"))
+if err := logger.LoadTOMLConfig("config/config.toml"); err != nil {
+    log.Printf("Failed to load SMTP config: %v", err)
 }
 ```
+
+### Option 2: Environment Variables
+
+Create a `.env` file in your project root:
+
+```env
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=email@gmail.com
+SMTP_TO=recipient1@gmail.com,recipient2@gmail.com
+```
+
+Load the configuration:
+
+```go
+if err := logger.LoadENVConfig(); err != nil {
+    log.Printf("Failed to load ENV config: %v", err)
+}
+```
+
+**Note:** For `SMTP_TO`, use comma-separated email addresses.
+
+If neither configuration is loaded, errors will be logged locally but no email alerts will be sent.
 
 ## Email Notifications
 
@@ -254,11 +282,18 @@ All public functions are thread-safe:
 ## Environment Variables
 
 - `CLIENT_NAME`: Used if not set through `SetClientName()`
+- `SMTP_SERVER`: SMTP server address
+- `SMTP_PORT`: SMTP server port (defaults to 587 if invalid)
+- `SMTP_USERNAME`: SMTP authentication username
+- `SMTP_PASSWORD`: SMTP authentication password
+- `SMTP_FROM`: Sender email address
+- `SMTP_TO`: Comma-separated list of recipient email addresses
 
 ## Dependencies
 
 - `github.com/pelletier/go-toml` - TOML configuration parsing
 - `github.com/jordan-wright/email` - Email sending functionality
+- `github.com/joho/godotenv` - Environment variable loading from .env files
 
 ## Examples
 

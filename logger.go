@@ -59,14 +59,19 @@ func SetLoggerDirectory(path string) error {
 }
 
 func CreateLoggerDirectory() (*os.File, error) {
-	folderName := "Logger Module"
+
+	folderName := "Golang Logger"
+	if envName := os.Getenv("CLIENT_NAME"); envName != "" {
+		folderName = envName
+	}
+
 	var baseDirectory string
 
 	if defaultDirectory != "" {
 			baseDirectory = defaultDirectory
 	} else {
 			if runtime.GOOS == "windows" {
-					baseDirectory = "C:\\Project"
+					baseDirectory = "C:\\"
 			} else {
 					home, err := os.UserHomeDir()
 					if err != nil {
@@ -82,10 +87,10 @@ func CreateLoggerDirectory() (*os.File, error) {
 			return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	logPath := filepath.Join(programDirectory, "Logs.txt")
+	logPath := filepath.Join(programDirectory, "logs.txt")
 
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-			header := fmt.Sprintf("[Logger Module - %s]\n\n", GetClientName())
+			header := fmt.Sprintf("[%s]\n", GetClientName())
 			if err := os.WriteFile(logPath, []byte(header), 0644); err != nil {
 					return nil, fmt.Errorf("failed to create log file: %w", err)
 			}
